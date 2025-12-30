@@ -93,6 +93,35 @@ function getLatestChangelog(releases) {
 }
 
 /**
+ * Get the download link from the latest release
+ * @param {Array} releases - Array of release objects
+ * @returns {string | null}
+ */
+function getLatestDownloadLink(releases) {
+  if (!releases || releases.length === 0) {
+    return null;
+  }
+
+  // Find the latest release (releases are typically sorted by date, newest first)
+  const latestRelease = releases[0];
+
+  if (!latestRelease.assets || latestRelease.assets.length === 0) {
+    return null;
+  }
+
+  // Find the .zip asset (typically named 'latest.zip' for Dalamud plugins)
+  const zipAsset = latestRelease.assets.find(asset =>
+    asset.name.endsWith('.zip') && asset.browser_download_url
+  );
+
+  if (!zipAsset) {
+    return null;
+  }
+
+  return zipAsset.browser_download_url;
+}
+
+/**
  * Main function to update download counts and changelogs
  */
 async function main() {
@@ -136,7 +165,15 @@ async function main() {
     const changelog = getLatestChangelog(releases);
     plugin.Changelog = changelog;
 
-    console.log(`  ${plugin.Name}: ${downloadCount} downloads, changelog updated`);
+    // Update download links if latest release exists
+    const latestDownloadLink = getLatestDownloadLink(releases);
+    if (latestDownloadLink) {
+      plugin.DownloadLinkInstall = latestDownloadLink;
+      plugin.DownloadLinkUpdate = latestDownloadLink;
+      console.log(`  ${plugin.Name}: ${downloadCount} downloads, changelog and download links updated`);
+    } else {
+      console.log(`  ${plugin.Name}: ${downloadCount} downloads, changelog updated (no download link found)`);
+    }
   }
 
   // Write updated pluginmaster.json
